@@ -1,8 +1,8 @@
 import threading
 import queue
 
-from receiver import Receiver
-from sender import Sender
+from Chat.receiver import Receiver
+from Chat.sender import Sender
 
 
 class Chat(threading.Thread):

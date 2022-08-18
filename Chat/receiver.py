@@ -1,6 +1,6 @@
 import threading
 
-from twitch_irc_parser import TwitchIrcParser
+from Chat.twitch_irc_parser import TwitchIrcParser
 
 
 class Receiver(threading.Thread):
