@@ -4,8 +4,8 @@ import sys
 
 from PyQt6.QtWidgets import QApplication
 
-from chat import Chat
-from gui import MainWindow
+from Chat.chat import Chat
+from GUI.gui import MainWindow
 
 
 def get_oauth():
