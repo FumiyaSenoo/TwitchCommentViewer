@@ -1,5 +1,6 @@
 import threading
 
+import const
 from Chat.twitch_irc_parser import TwitchIrcParser
 
 
@@ -42,10 +43,10 @@ class Receiver(threading.Thread):
             message = non_striped_message.strip()
             parsed = self.irc_parser.parse(message)
             print(message)
-            if len(parsed) == 0:
-                continue
 
-            if parsed[0] == 'PING':
-                self.sender.send_pong(parsed[1])
-            elif parsed[0] == 'PRIVMSG':
-                self.display_message_queue.put(parsed[2])
+            if parsed.type == const.TWITCH_IRC_MESSAGE_TYPE_NOT_SUPPORTED:
+                pass
+            elif parsed.type == const.TWITCH_IRC_MESSAGE_TYPE_PING:
+                self.sender.send_pong(parsed.received_message)
+            elif parsed.type == const.TWITCH_IRC_MESSAGE_TYPE_PRIVMSG:
+                self.display_message_queue.put(parsed.original_message)
