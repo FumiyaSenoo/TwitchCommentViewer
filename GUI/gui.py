@@ -1,5 +1,9 @@
+import urllib.request
+import urllib.error
+
 from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QWidget, QLineEdit, QListWidget, QHBoxLayout
+from PyQt6.QtGui import QPixmap, QImage
+from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QWidget, QLineEdit, QListWidget, QHBoxLayout, QLabel
 
 
 class MainWindow(QWidget):
@@ -25,6 +29,9 @@ class MainWindow(QWidget):
 
         # 受信したコメント表示欄
         self.list_widget = QListWidget(self)
+
+        # とりあえず適当にエモート表示
+        self.label = QLabel(self)
 
         # チャンネル名入力欄
         self.channel = QLineEdit(self)
@@ -54,6 +61,7 @@ class MainWindow(QWidget):
         # レイアウト処理
         self.v_box_layout = QVBoxLayout(self)
         self.v_box_layout.addWidget(self.list_widget)
+        self.v_box_layout.addWidget(self.label)
         self.h_box_layout = QHBoxLayout(self)
         self.h_box_layout.addWidget(self.channel)
         self.h_box_layout.addWidget(self.join_button)
@@ -71,10 +79,25 @@ class MainWindow(QWidget):
         :return: なし
         """
         msg = self.chat.get_display_message()
-        if msg == '':
-            return
+        if msg != '':
+            self.list_widget.addItem(msg)
 
-        self.list_widget.addItem(msg)
+        # 以下、エモート表示のためのいい加減実装
+        emote = self.chat.get_emote()
+        for e in emote:
+            (key, value) = e
+            if key == 'emote':
+                try:
+                    url = 'https://static-cdn.jtvnw.net/emoticons/v2/' + value + '/static/light/2.0'
+                    with urllib.request.urlopen(url) as from_web:
+                        row_bytes = from_web.read()
+                        with open('cache/aaa', mode='wb') as file:
+                            file.write(row_bytes)
+                        image = QImage()
+                        image.load('cache/aaa')
+                        self.label.setPixmap(QPixmap.fromImage(image))
+                except urllib.error.URLError as e:
+                    print(e)
 
     def send(self):
         """

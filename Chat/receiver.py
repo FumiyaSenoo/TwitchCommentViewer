@@ -1,7 +1,7 @@
 import threading
 
 import const
-from Chat.twitch_irc_parser import TwitchIrcParser
+from Chat.twitch_irc_parser import twitch_parse
 
 
 class Receiver(threading.Thread):
@@ -9,7 +9,7 @@ class Receiver(threading.Thread):
     IRC 受信用
     """
 
-    def __init__(self, irc, sender, display_message_queue):
+    def __init__(self, irc, sender, display_message_queue, emote):
         """
         コンストラクタ
 
@@ -20,9 +20,9 @@ class Receiver(threading.Thread):
         super().__init__()
 
         self.irc = irc
-        self.irc_parser = TwitchIrcParser()
 
         self.display_message_queue = display_message_queue
+        self.emote = emote
         self.sender = sender
         self.start()
 
@@ -41,7 +41,7 @@ class Receiver(threading.Thread):
             #     print('&&&&&' + non_striped_message)
             #     non_striped_message = non_striped_message + self.irc.recv(4096).decode('utf-8')
             message = non_striped_message.strip()
-            parsed = self.irc_parser.parse(message)
+            parsed = twitch_parse(message)
             print(message)
 
             if parsed.type == const.TWITCH_IRC_MESSAGE_TYPE_NOT_SUPPORTED:
@@ -50,3 +50,5 @@ class Receiver(threading.Thread):
                 self.sender.send_pong(parsed.received_message)
             elif parsed.type == const.TWITCH_IRC_MESSAGE_TYPE_PRIVMSG:
                 self.display_message_queue.put(parsed.original_message)
+                # 以下、エモート表示のためのいい加減実装
+                self.emote.put(parsed.emote_split_message)
