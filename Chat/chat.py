@@ -12,7 +12,6 @@ class Chat(threading.Thread):
     joined = []
     send_message_queue = queue.Queue()
     display_message_queue = queue.Queue()
-    # 以下、エモート表示のためのいい加減実装
     original_message_queue = queue.Queue()
 
     def __init__(self, irc, nick, oauth):
