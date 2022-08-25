@@ -13,7 +13,7 @@ class Chat(threading.Thread):
     send_message_queue = queue.Queue()
     display_message_queue = queue.Queue()
     # 以下、エモート表示のためのいい加減実装
-    emote = queue.Queue()
+    original_message_queue = queue.Queue()
 
     def __init__(self, irc, nick, oauth):
         """
@@ -37,7 +37,7 @@ class Chat(threading.Thread):
         self.sender = Sender(irc, self.send_message_queue)
 
         # 受信用
-        self.receiver = Receiver(irc, self.sender, self.display_message_queue, self.emote)
+        self.receiver = Receiver(irc, self.sender, self.display_message_queue, self.original_message_queue)
 
     def send_comment(self, channel, message):
         """
@@ -64,12 +64,12 @@ class Chat(threading.Thread):
         except queue.Empty:
             return ''
 
-    def get_emote(self):
+    def get_original_message_queue(self):
         try:
-            if self.emote.empty():
+            if self.original_message_queue.empty():
                 return ''
             else:
-                return self.emote.get(False)
+                return self.original_message_queue.get(False)
         except queue.Empty:
             return ''
 

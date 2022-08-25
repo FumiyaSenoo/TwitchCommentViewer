@@ -24,26 +24,31 @@ def parse_privmsg(line):
 
         if key == 'user-type':
             index = line.index('PRIVMSG')
-            msg = line[index + 8:len(line)]
-            index = msg.index(':')
-            channel = msg[1:index - 1]
-            message = msg[index + 1:len(msg)]
+            privmsg = line[index + 8:len(line)]
+            index = privmsg.index(':')
+            channel = privmsg[1:index - 1]
+            message = privmsg[index + 1:len(privmsg)]
 
-            if not len(emotes) == 0:
+            if len(emotes) == 0:
+                message_with_emote.append(('text', message))
+            else:
                 index = 0
                 for emote in emotes:
                     (emote_id, emote_position) = emote
                     (emote_start, emote_end) = emote_position.split('-')
                     emote_start_position = int(emote_start)
-                    emote_end_position = int(emote_end)
+                    emote_end_position = int(emote_end) + 1
 
+                    # emote より手前のテキストの処理
                     if index < emote_start_position:
                         normal_text = message[index:emote_start_position - 1]
                         message_with_emote.append(('text', normal_text))
                         index = emote_start_position
+                    # エモートの処理
                     if index == emote_start_position:
-                        message_with_emote.append(('emote', emote_id))
-                        index = emote_end_position + 2
+                        emote_text = message[index:emote_end_position]
+                        message_with_emote.append(('emote', (emote_id, emote_text)))
+                        index = emote_end_position
 
                 # 末尾のメッセージ処理
                 if index != len(message):
@@ -59,11 +64,20 @@ def parse_privmsg(line):
             orders = []
             dictionary = {}
             for emote in value.split('/'):
-                (emote_id, emote_position) = emote.split(':')
-                (start, end) = emote_position.split('-')
-                start_position = int(start)
-                dictionary[start_position] = (emote_id, emote_position)
-                orders.append(start_position)
+                (emote_id, emote_positions) = emote.split(':')
+                if ',' in emote_positions:
+                    # 同じエモートが使われているケース
+                    for emote_position in emote_positions.split(','):
+                        (start, end) = emote_position.split('-')
+                        start_position = int(start)
+                        dictionary[start_position] = (emote_id, emote_position)
+                        orders.append(start_position)
+                else:
+                    # 同一のエモートは使用されていないケース
+                    (start, end) = emote_positions.split('-')
+                    start_position = int(start)
+                    dictionary[start_position] = (emote_id, emote_positions)
+                    orders.append(start_position)
             orders.sort()
             for order in orders:
                 emotes.append(dictionary[order])
@@ -161,7 +175,6 @@ class PrivmsgMessage(FromTwitchMessage):
         :param is_emote_include: エモートを含んでいるか
         :param is_message_include: メッセージを含んでいるか
         """
-        print(emote_split_message)
         super().__init__(message_type)
         self.type = message_type
         self.channel = channel

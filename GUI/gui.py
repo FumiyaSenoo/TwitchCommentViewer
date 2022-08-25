@@ -1,9 +1,10 @@
+import os.path
 import urllib.request
 import urllib.error
 
-from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QPixmap, QImage
-from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QWidget, QLineEdit, QListWidget, QHBoxLayout, QLabel
+from PyQt6.QtCore import QTimer, Qt, QRect
+from PyQt6.QtGui import QImage, QPainter, QFontMetrics, QFont, QColor
+from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QWidget, QLineEdit, QListWidget, QHBoxLayout, QListWidgetItem
 
 
 class MainWindow(QWidget):
@@ -29,9 +30,6 @@ class MainWindow(QWidget):
 
         # 受信したコメント表示欄
         self.list_widget = QListWidget(self)
-
-        # とりあえず適当にエモート表示
-        self.label = QLabel(self)
 
         # チャンネル名入力欄
         self.channel = QLineEdit(self)
@@ -61,7 +59,6 @@ class MainWindow(QWidget):
         # レイアウト処理
         self.v_box_layout = QVBoxLayout(self)
         self.v_box_layout.addWidget(self.list_widget)
-        self.v_box_layout.addWidget(self.label)
         self.h_box_layout = QHBoxLayout(self)
         self.h_box_layout.addWidget(self.channel)
         self.h_box_layout.addWidget(self.join_button)
@@ -78,26 +75,13 @@ class MainWindow(QWidget):
 
         :return: なし
         """
-        msg = self.chat.get_display_message()
-        if msg != '':
-            self.list_widget.addItem(msg)
-
-        # 以下、エモート表示のためのいい加減実装
-        emote = self.chat.get_emote()
-        for e in emote:
-            (key, value) = e
-            if key == 'emote':
-                try:
-                    url = 'https://static-cdn.jtvnw.net/emoticons/v2/' + value + '/static/light/2.0'
-                    with urllib.request.urlopen(url) as from_web:
-                        row_bytes = from_web.read()
-                        with open('cache/aaa', mode='wb') as file:
-                            file.write(row_bytes)
-                        image = QImage()
-                        image.load('cache/aaa')
-                        self.label.setPixmap(QPixmap.fromImage(image))
-                except urllib.error.URLError as e:
-                    print(e)
+        emote = self.chat.get_display_message()
+        if not len(emote) == 0:
+            widget = ListItem(self.list_widget, emote)
+            widget_item = QListWidgetItem(self.list_widget)
+            widget_item.setSizeHint(widget.size())
+            self.list_widget.addItem(widget_item)
+            self.list_widget.setItemWidget(widget_item, widget)
 
     def send(self):
         """
@@ -118,3 +102,69 @@ class MainWindow(QWidget):
         """
         channel = self.channel.text()
         self.chat.send_join(channel)
+
+
+class ListItem(QWidget):
+    """
+    リスト用描画用クラス
+    """
+    def __init__(self, parent, message):
+        """
+        コンストラクタ
+
+        :param parent: 親ウィジェット
+        :param message: 表示するメッセージ
+        """
+        super().__init__(parent)
+        self.views = {}
+        self.font = QFont()
+        index = 0
+        rect = QFontMetrics(self.font).boundingRect('A')
+        self.setFixedHeight(rect.height())
+
+        for element in message:
+            (key, value) = element
+            if key == 'text':
+                self.views[index] = (key, value)
+            elif key == 'emote':
+                try:
+                    (emote_id, emote_text) = value
+                    url = 'https://static-cdn.jtvnw.net/emoticons/v2/' + emote_id + '/static/light/2.0'
+                    image = QImage()
+                    file_path = 'cache/' + emote_text
+                    if not os.path.isfile(file_path):
+                        with urllib.request.urlopen(url) as from_web:
+                            row_bytes = from_web.read()
+                            with open(file_path, mode='wb') as file:
+                                file.write(row_bytes)
+                    image.load(file_path)
+                    self.views[index] = (key, image)
+                    self.setFixedHeight(image.height())
+                except urllib.error.URLError as e:
+                    (emote_id, emote_text) = value
+                    # 本来はエモートなので、前後にスペースを入れて読めるようにする
+                    self.views[index] = ('text', ' ' + emote_text + ' ')
+            index += 1
+
+    def paintEvent(self, event):
+        """
+        描画処理
+
+        :param event: PaintEvent
+        :return: なし
+        """
+        painter = QPainter(self)
+        painter.setPen(QColor(0, 0, 0))
+        painter.setFont(self.font)
+        point = painter.brushOrigin()
+        for index in range(len(self.views)):
+            (key, value) = self.views[index]
+            if key == 'text':
+                font_rect = QFontMetrics(painter.font()).boundingRect(value)
+                y = self.height() - font_rect.height()
+                draw_rect = QRect(point.x(), y, font_rect.width(), font_rect.height())
+                painter.drawText(draw_rect, Qt.AlignmentFlag.AlignBottom, value)
+                point.setX(point.x() + draw_rect.width())
+            elif key == 'emote':
+                painter.drawImage(point, value)
+                point.setX(point.x() + value.width())
