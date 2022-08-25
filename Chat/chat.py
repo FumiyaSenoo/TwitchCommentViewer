@@ -12,6 +12,7 @@ class Chat(threading.Thread):
     joined = []
     send_message_queue = queue.Queue()
     display_message_queue = queue.Queue()
+    original_message_queue = queue.Queue()
 
     def __init__(self, irc, nick, oauth):
         """
@@ -35,7 +36,7 @@ class Chat(threading.Thread):
         self.sender = Sender(irc, self.send_message_queue)
 
         # 受信用
-        self.receiver = Receiver(irc, self.sender, self.display_message_queue)
+        self.receiver = Receiver(irc, self.sender, self.display_message_queue, self.original_message_queue)
 
     def send_comment(self, channel, message):
         """
@@ -59,6 +60,15 @@ class Chat(threading.Thread):
                 return ''
             else:
                 return self.display_message_queue.get(False)
+        except queue.Empty:
+            return ''
+
+    def get_original_message_queue(self):
+        try:
+            if self.original_message_queue.empty():
+                return ''
+            else:
+                return self.original_message_queue.get(False)
         except queue.Empty:
             return ''
 

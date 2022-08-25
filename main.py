@@ -2,10 +2,7 @@ import os
 import socket
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 from PyQt6.QtWidgets import QApplication
-
 from Chat.chat import Chat
 from GUI.gui import MainWindow
 
