@@ -3,6 +3,9 @@ import socket
 import sys
 
 from PyQt6.QtWidgets import QApplication
+
+from Authenticate.authenticate_browser import AuthenticateBrowser
+from Authenticate.authenticate_server import AuthenticateServer
 from Chat.chat import Chat
 from GUI.gui import MainWindow
 
@@ -18,6 +21,14 @@ def get_oauth():
     if not is_exist:
         return ''
     return open(oauth_path).read()
+
+
+def write_oauth(oauth):
+    oauth_path = 'settings/oauth'
+    is_exist = os.path.isfile(oauth_path)
+    if is_exist:
+        return
+    open(oauth_path).write(oauth)
 
 
 def get_nick():
@@ -51,18 +62,31 @@ if __name__ == '__main__':
     """
     app = QApplication(sys.argv)
 
+    is_exist_settings_directory = os.path.isdir('settings')
+    if not is_exist_settings_directory:
+        os.mkdir('settings')
+    is_exist_cache_directory = os.path.isdir('cache')
+    if not is_exist_cache_directory:
+        os.mkdir('cache')
+
+    is_authenticated = True
     nick = get_nick()
     if len(nick) == 0:
-        sys.exit(1)
+        is_authenticated = False
 
     oauth = get_oauth()
     if not len(oauth) == 30:
-        sys.exit(2)
+        is_authenticated = False
 
     irc = get_irc()
-    chat = Chat(irc, nick, oauth)
 
-    window = MainWindow(chat)
+    if is_authenticated:
+        window = MainWindow()
+        chat = Chat(irc, nick, oauth)
+        window.set_chat(chat)
+    else:
+        server = AuthenticateServer()
+        browser = AuthenticateBrowser()
 
     return_code = app.exec()
 

@@ -12,16 +12,15 @@ class MainWindow(QWidget):
     GUI
     """
 
-    def __init__(self, chat):
+    def __init__(self):
         """
         コンストラクタ
-
-        :param chat: チャットインスタンス
         """
         super().__init__()
-        self.chat = chat
+        # self.chat = chat
 
         # Window 全体設定
+        self.chat = None
         self.title = 'Twitch CommentViewer'
         self.width = 400
         self.height = 200
@@ -68,6 +67,9 @@ class MainWindow(QWidget):
 
         # 表示
         self.show()
+
+    def set_chat(self, chat):
+        self.chat = chat
 
     def reload(self):
         """
@@ -127,8 +129,8 @@ class ListItem(QWidget):
             if key == 'text':
                 self.views[index] = (key, value)
             elif key == 'emote':
+                (emote_id, emote_text) = value
                 try:
-                    (emote_id, emote_text) = value
                     url = 'https://static-cdn.jtvnw.net/emoticons/v2/' + emote_id + '/static/light/2.0'
                     image = QImage()
                     file_path = 'cache/' + emote_text
@@ -141,7 +143,6 @@ class ListItem(QWidget):
                     self.views[index] = (key, image)
                     self.setFixedHeight(image.height())
                 except urllib.error.URLError as e:
-                    (emote_id, emote_text) = value
                     # 本来はエモートなので、前後にスペースを入れて読めるようにする
                     self.views[index] = ('text', ' ' + emote_text + ' ')
             index += 1
